@@ -35,8 +35,18 @@ int test_plots(const std::string& file_list)
         caf_chain->Add(file.c_str());
     }
 
-    TH1D* h_part_T = new TH1D("h_part_T", "h_part_T", 50, 0.0, 0.5);
-    TH1D* h_part_p = new TH1D("h_part_p", "h_part_p", 50, 0.0, 1.0);
+    const float tpc_x = 0.0;
+    const float tpc_y = -268.0;
+    const float tpc_z = (1333.5 + 1266.5) / 2.0;
+
+    TH1F* h_part_T = new TH1F("h_part_T", "h_part_T", 50, 0.0, 0.5);
+    TH1F* h_part_T_cont = new TH1F("h_part_T_cont", "h_part_T_cont", 50, 0.0, 0.5);
+    TH1F* h_part_p = new TH1F("h_part_p", "h_part_p", 50, 0.0, 1.0);
+    TH1F* h_part_p_cont = new TH1F("h_part_p_cont", "h_part_p_cont", 50, 0.0, 1.0);
+
+    TH1F* h_vtx_x = new TH1F("h_vtx_x", "h_vtx_x", 50, -100 + tpc_x, 100 + tpc_x);
+    TH1F* h_vtx_y = new TH1F("h_vtx_y", "h_vtx_y", 50, -100 + tpc_y, 100 + tpc_y);
+    TH1F* h_vtx_z = new TH1F("h_vtx_z", "h_vtx_z", 50, -100 + tpc_z, 100 + tpc_z);
 
     auto sr = new caf::StandardRecord;
     caf_chain->SetBranchAddress("rec", &sr);
@@ -55,26 +65,47 @@ int test_plots(const std::string& file_list)
         //std::cout << "Num interactions: " << sr->common.ixn.ndlp << std::endl;
         for(unsigned long ixn = 0; ixn < sr->common.ixn.ndlp; ++ixn)
         {
+            auto vtx = sr->common.ixn.dlp[ixn].vtx;
+
+            if(std::isfinite(vtx.x) && std::isfinite(vtx.y) && std::isfinite(vtx.z))
+            {
+                h_vtx_x->Fill(vtx.x);
+                h_vtx_y->Fill(vtx.y);
+                h_vtx_z->Fill(vtx.z);
+            }
+
             for(unsigned long ipart = 0; ipart < sr->common.ixn.dlp[ixn].part.dlp.size(); ++ipart)
             {
                 auto part = sr->common.ixn.dlp[ixn].part.dlp[ipart];
-                //if(!part.contained)
-                //    continue;
 
                 if(part.pdg != 2212)
                     continue;
+
+                //if(std::abs(part.pdg) != 211)
+                //    continue;
 
                 float p = std::sqrt((part.p.x * part.p.x) + (part.p.y * part.p.y) + (part.p.z * part.p.z));
 
                 h_part_T->Fill(part.E);
                 h_part_p->Fill(p);
+
+                if(part.contained)
+                {
+                    h_part_T_cont->Fill(part.E);
+                    h_part_p_cont->Fill(p);
+                }
             }
         }
     }
 
     TFile* caf_output = new TFile("caf_plots.root", "recreate");
+    h_vtx_x->Write();
+    h_vtx_y->Write();
+    h_vtx_z->Write();
     h_part_T->Write();
+    h_part_T_cont->Write();
     h_part_p->Write();
+    h_part_p_cont->Write();
     caf_output->Close();
 
     std::cout << "Finished." << std::endl;
