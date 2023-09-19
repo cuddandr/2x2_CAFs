@@ -1,9 +1,15 @@
 import numpy as np
 import uproot as ur
 import matplotlib.pyplot as plt
+import argparse
 
-file_name = "./files/outputCAF_notruth_27023797_10.flat.root"
+default_file = "./files/flat/outputCAF_noGENIEtruth_27023797_10.flat.root"
 
+parser = argparse.ArgumentParser(description='Make plots from CAF(s)')
+parser.add_argument('file', metavar='file', nargs='?', default=default_file, help='input CAF file')
+args = parser.parse_args()
+
+file_name = args.file
 print("Opening {}".format(file_name))
 caf_file = ur.open(file_name)
 caf_tree = caf_file['cafTree']
@@ -71,23 +77,19 @@ contained = (part_cont[part_pdg == 2212] == True)
 nbins=50
 style_hist = {"alpha" : 0.5}
 
-fig = plt.figure()
-plt.hist(proton_p, bins=nbins, range=[0,1000], label='All protons', **style_hist)
-plt.hist(proton_p[contained], bins=nbins, range=[0,1000], label='Only contained', **style_hist)
-plt.ylabel("Num. tracks")
-plt.xlabel("Momentum [MeV]")
-plt.legend()
-plt.savefig("proton_momentum.png")
+fig_proton, axes = plt.subplots(1, 2, figsize=(15, 5))
+axes[0].hist(proton_p, bins=nbins, range=[0,1.0], label='All protons', **style_hist)
+axes[0].hist(proton_p[contained], bins=nbins, range=[0,1.0], label='Only contained', **style_hist)
+axes[0].set_ylabel("Num. tracks")
+axes[0].set_xlabel("Momentum [GeV]")
+axes[0].legend()
 
-#pmass = 0.938
-#proton_q = np.sqrt(np.square(proton_kinE + pmass) - pmass**2) * 1000
+axes[1].hist(proton_kinE, bins=nbins, range=[0,0.5], label='All protons', **style_hist)
+axes[1].hist(proton_kinE[contained], bins=nbins, range=[0,0.5], label='Only contained', **style_hist)
+axes[1].set_ylabel("Num. tracks")
+axes[1].set_xlabel("Kinetic Energy [GeV]")
+axes[1].legend()
 
-fig = plt.figure()
-plt.hist(proton_kinE, bins=nbins, range=[0,0.5], label='All protons', **style_hist)
-plt.hist(proton_kinE[contained], bins=nbins, range=[0,0.5], label='Only contained', **style_hist)
-plt.ylabel("Num. tracks")
-plt.xlabel("Kinetic Energy [GeV]")
-plt.legend()
-plt.savefig("proton_kinE.png")
+fig_proton.savefig("proton_kinematics.png")
 
 print("Finished.")
