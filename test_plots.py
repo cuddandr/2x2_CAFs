@@ -14,6 +14,8 @@ print("Opening {}".format(file_name))
 caf_file = ur.open(file_name)
 caf_tree = caf_file['cafTree']
 
+num_ixn = caf_tree['rec.common.ixn.ndlp'].array(library="np")
+
 reco_vtx_x = np.concatenate(caf_tree['rec.common.ixn.dlp.vtx.x'].array(library="np"))
 reco_vtx_y = np.concatenate(caf_tree['rec.common.ixn.dlp.vtx.y'].array(library="np"))
 reco_vtx_z = np.concatenate(caf_tree['rec.common.ixn.dlp.vtx.z'].array(library="np"))
@@ -43,6 +45,13 @@ proton_kinE = part_E[proton_mask]
 proton_pvec = np.stack((part_px[proton_mask], part_py[proton_mask], part_pz[proton_mask]), axis=1)
 
 print("Making histogram(s)...")
+
+fig_ixn = plt.figure()
+plt.hist(num_ixn, range=[0,20], bins=20)
+plt.ylabel("Num. occurances")
+plt.xlabel("Num. interactions/spill")
+plt.xticks(np.arange(0, 21))
+plt.savefig("num_ixn.png")
 
 nbins=50
 style_hist = {"alpha" : 0.5}

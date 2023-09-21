@@ -39,6 +39,8 @@ int test_plots(const std::string& file_list)
     const float tpc_y = -268.0;
     const float tpc_z = (1333.5 + 1266.5) / 2.0;
 
+    TH1F* h_num_ixn = new TH1F("h_num_ixn", "h_num_ixn", 10, 0, 10);
+
     TH1F* h_part_T = new TH1F("h_part_T", "h_part_T", 50, 0.0, 0.5);
     TH1F* h_part_T_cont = new TH1F("h_part_T_cont", "h_part_T_cont", 50, 0.0, 0.5);
     TH1F* h_part_p = new TH1F("h_part_p", "h_part_p", 50, 0.0, 1.0);
@@ -62,8 +64,11 @@ int test_plots(const std::string& file_list)
             std::cout << "Spill #: " << i << std::endl;
 
         //std::cout << "Spill #: " << i << std::endl;
-        //std::cout << "Num interactions: " << sr->common.ixn.ndlp << std::endl;
-        for(unsigned long ixn = 0; ixn < sr->common.ixn.ndlp; ++ixn)
+        const auto num_ixn = sr->common.ixn.ndlp;
+        h_num_ixn->Fill(num_ixn);
+
+        //std::cout << "Num interactions: " << num_ixn << std::endl;
+        for(unsigned long ixn = 0; ixn < num_ixn; ++ixn)
         {
             auto vtx = sr->common.ixn.dlp[ixn].vtx;
 
@@ -99,6 +104,7 @@ int test_plots(const std::string& file_list)
     }
 
     TFile* caf_output = new TFile("caf_plots.root", "recreate");
+    h_num_ixn->Write();
     h_vtx_x->Write();
     h_vtx_y->Write();
     h_vtx_z->Write();
