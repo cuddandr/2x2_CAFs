@@ -36,6 +36,7 @@ num_true_vtx = len(true_vtx_x)
 part_cont = np.concatenate(caf_tree['rec.common.ixn.dlp.part.dlp.contained'].array(library="np"))
 part_pdg  = np.concatenate(caf_tree['rec.common.ixn.dlp.part.dlp.pdg'].array(library="np"))
 part_E    = np.concatenate(caf_tree['rec.common.ixn.dlp.part.dlp.E'].array(library="np"))
+part_Em   = np.concatenate(caf_tree['rec.common.ixn.dlp.part.dlp.E_method'].array(library="np"))
 part_px   = np.concatenate(caf_tree['rec.common.ixn.dlp.part.dlp.p.x'].array(library="np"))
 part_py   = np.concatenate(caf_tree['rec.common.ixn.dlp.part.dlp.p.y'].array(library="np"))
 part_pz   = np.concatenate(caf_tree['rec.common.ixn.dlp.part.dlp.p.z'].array(library="np"))
@@ -55,6 +56,17 @@ plt.savefig("num_ixn.png")
 
 nbins=50
 style_hist = {"alpha" : 0.5}
+
+E_calo  = part_E[part_Em == 3]
+E_other = part_E[part_Em != 3]
+
+fig_energy = plt.figure()
+plt.hist(E_calo, range=[-0.1,0.9], bins=nbins, label='Calometric energy', **style_hist)
+plt.hist(E_other, range=[-0.1,0.9], bins=nbins, label='MCS/range energy', **style_hist)
+plt.ylabel("Num. events")
+plt.xlabel("Kinetic energy [GeV]")
+plt.legend(frameon=False, fontsize=14)
+plt.savefig("kin_energy.png")
 
 reco_label = "reco ({} entries)".format(num_reco_vtx)
 true_label = "true ({} entries)".format(num_true_vtx)
