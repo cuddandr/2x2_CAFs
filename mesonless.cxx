@@ -1,4 +1,4 @@
-#include "/cvmfs/dune.opensciencegrid.org/products/dune/duneanaobj/v03_01_00/include/duneanaobj/StandardRecord/StandardRecord.h"
+#include "/cvmfs/dune.opensciencegrid.org/products/dune/duneanaobj/v03_02_01/include/duneanaobj/StandardRecord/StandardRecord.h"
 
 int mesonless(const std::string& file_list)
 {
@@ -69,6 +69,9 @@ int mesonless(const std::string& file_list)
 
     unsigned int num_passed = 0;
     unsigned int total_ixn  = 0;
+    unsigned int total_truth = 0;
+    unsigned int total_rock  = 0;
+    unsigned int total_argon = 0;
 
     const unsigned long nspills = caf_chain->GetEntries();
     const unsigned int incr = nspills / 10;
@@ -86,7 +89,7 @@ int mesonless(const std::string& file_list)
         for(unsigned long ixn = 0; ixn < num_ixn; ++ixn)
         {
             total_ixn++;
-            const auto vtx = sr->common.ixn.dlp[ixn].vtx;
+            const auto& vtx = sr->common.ixn.dlp[ixn].vtx;
 
             if(std::isfinite(vtx.x) && std::isfinite(vtx.y) && std::isfinite(vtx.z))
             {
@@ -95,7 +98,7 @@ int mesonless(const std::string& file_list)
                 h_vtx_z->Fill(vtx.z);
             }
 
-            auto vec_part = sr->common.ixn.dlp[ixn].part.dlp;
+            const auto& vec_part = sr->common.ixn.dlp[ixn].part.dlp;
             unsigned int num_muons = 0;
             unsigned int num_prtns = 0;
             unsigned int num_pions = 0;
@@ -138,7 +141,7 @@ int mesonless(const std::string& file_list)
                 continue;
 
             num_passed++;
-            /*
+            std::cout << "Reco particles: ";
             std::cout << "[";
             for(const auto& p : vec_part)
             {
@@ -148,14 +151,57 @@ int mesonless(const std::string& file_list)
                 std::cout << p.pdg << ", ";
             }
             std::cout << "]\n";
-            */
+
+            const auto& vec_truth_ixn = sr->common.ixn.dlp[ixn].truth;
+            const auto& vec_overlap = sr->common.ixn.dlp[ixn].truthOverlap;
+            for(unsigned long t = 0; t < vec_truth_ixn.size(); ++t)
+            {
+                auto idx = vec_truth_ixn.at(t);
+                //std::cout << idx << std::endl;
+                const auto& truth_ixn = sr->mc.nu[idx];
+                std::cout << "True idx " << idx << "--> VtxID : " << truth_ixn.id << " w/ overlap " << vec_overlap.at(t) << std::endl;
+                std::cout << "React : " << std::boolalpha << truth_ixn.iscc << "|" << truth_ixn.mode << std::endl;
+                std::cout << "N prtn: " << truth_ixn.nproton << std::endl;
+                std::cout << "N neut: " << truth_ixn.nneutron << std::endl;
+                std::cout << "N pip : " << truth_ixn.npip << std::endl;
+                std::cout << "N pim : " << truth_ixn.npim << std::endl;
+                std::cout << "N pi0 : " << truth_ixn.npi0 << std::endl;
+
+                std::cout << "Nprim : " << truth_ixn.nprim << std::endl;
+                std::cout << "Nsec  : " << truth_ixn.nsec  << std::endl;
+
+                if(truth_ixn.id >= 0 && truth_ixn.id < 1E9)
+                    total_argon++;
+                else
+                    total_rock++;
+                total_truth++;
+            }
 
             for(unsigned long ipart = 0; ipart < sr->common.ixn.dlp[ixn].part.dlp.size(); ++ipart)
             {
                 auto part = sr->common.ixn.dlp[ixn].part.dlp[ipart];
 
+                //if((part.pdg != 2212 and part.pdg != 13) or not part.primary)
                 if(part.pdg != 2212 or not part.primary)
                     continue;
+
+                const auto& vec_truth_id = part.truth;
+                const auto& vec_overlap  = part.truthOverlap;
+                //for(const auto& id : vec_truth_id)
+                std::cout << "Reco " << part.pdg << std::endl;
+                for(unsigned int z = 0; z < vec_truth_id.size(); ++z)
+                {
+                    auto id = vec_truth_id.at(z);
+                    caf::SRTrueParticle* q = nullptr;
+                    if(id.type == 1)
+                        q = &(sr->mc.nu[id.ixn].prim[id.part]);
+                    if(id.type == 3)
+                        q = &(sr->mc.nu[id.ixn].sec[id.part]);
+
+                    if(q != nullptr)
+                        std::cout << "-> " << q->pdg << " w/ overlap " << vec_overlap.at(z) << std::endl;
+                }
+
 
                 float p = std::sqrt((part.p.x * part.p.x) + (part.p.y * part.p.y) + (part.p.z * part.p.z));
 
@@ -204,6 +250,7 @@ int mesonless(const std::string& file_list)
 
     float eff = (float)num_passed / (float)total_ixn;
     std::cout << "Selected " << num_passed << " / " << total_ixn << " ~ " << eff << std::endl;
+    std::cout << "Truth total/rock/argon " << total_truth << "/" << total_rock << "/" << total_argon << std::endl;
     std::cout << "Time elapsed: " << t_elapsed.count() << std::endl;
     std::cout << "Finished." << std::endl;
     return 0;
