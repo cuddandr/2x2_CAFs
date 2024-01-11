@@ -135,7 +135,7 @@ int mesonless(const std::string& file_list)
             h_num_elecs->Fill(num_elecs);
 
             if((num_muons != 1) or (num_pions > 0))
-               continue;
+                continue;
 
             if(num_prtns == 0)
                 continue;
