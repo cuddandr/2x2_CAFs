@@ -36,11 +36,13 @@ int reco_perf(const std::string& file_list)
         std::cout << "Adding " << file << " to TChain." << std::endl;
         caf_chain->Add(file.c_str());
     }
+    std::cout << "Finished adding files..." << std::endl;
 
     //Beam direction -3.343 degrees in y
     const auto beam_dir = TVector3(0, -0.05836, 1.0);
 
     //Center of the 2x2 LAr
+    //For MR4.5 CAFs the 2x2 coordinates are actually centered somewhere else
     const float tpc_x = 0.0;
     const float tpc_y = 0.0; // -268.0;
     const float tpc_z = 0.0; //(1333.5 + 1266.5) / 2.0;
@@ -81,6 +83,24 @@ int reco_perf(const std::string& file_list)
         for(unsigned long ixn = 0; ixn < num_ixn; ++ixn)
         {
             auto vtx = sr->common.ixn.dlp[ixn].vtx;
+
+            //Get the truth interaction(s) corresponding to this reco interaction
+            const auto& vec_truth_ixn = sr->common.ixn.dlp[ixn].truth;
+            const auto& vec_overlap_ixn = sr->common.ixn.dlp[ixn].truthOverlap;
+
+            if(vec_overlap_ixn.empty())
+                continue;
+
+            //Find the truth interaction with the largest overlap
+            auto result = std::max_element(vec_overlap_ixn.begin(), vec_overlap_ixn.end());
+            auto max_overlap = std::distance(vec_overlap_ixn.begin(), result);
+            auto truth_idx = vec_truth_ixn.at(max_overlap);
+            auto truth_ixn = sr->mc.nu[truth_idx];
+
+            //Put cuts on true interaction quantities here
+            //For example, reject interactions not on argon
+            if(truth_ixn.targetPDG != 1000180400)
+                continue;
 
             if(std::isfinite(vtx.x) && std::isfinite(vtx.y) && std::isfinite(vtx.z))
             {
