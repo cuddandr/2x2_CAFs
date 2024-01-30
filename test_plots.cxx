@@ -1,5 +1,7 @@
-#include "/cvmfs/dune.opensciencegrid.org/products/dune/duneanaobj/v03_01_00/include/duneanaobj/StandardRecord/StandardRecord.h"
+#include "/cvmfs/dune.opensciencegrid.org/products/dune/duneanaobj/v03_02_01/include/duneanaobj/StandardRecord/StandardRecord.h"
 
+//Requires a file containing a list of input CAF files and returns an int code for success/error
+//The list should be one file/path per line, and files/lines can be commented out using #
 int test_plots(const std::string& file_list)
 {
     std::vector<std::string> root_list;
@@ -35,8 +37,10 @@ int test_plots(const std::string& file_list)
         caf_chain->Add(file.c_str());
     }
 
+    //Beam direction -3.343 degrees in y
     const auto beam_dir = TVector3(0, -0.05836, 1.0);
 
+    //Center of the 2x2 (if needed)
     const float tpc_x = 0.0;
     const float tpc_y = -268.0;
     const float tpc_z = (1333.5 + 1266.5) / 2.0;
@@ -69,7 +73,6 @@ int test_plots(const std::string& file_list)
         if(i % incr == 0)
             std::cout << "Spill #: " << i << std::endl;
 
-        //std::cout << "Spill #: " << i << std::endl;
         const auto num_ixn = sr->common.ixn.ndlp;
         h_num_ixn->Fill(num_ixn);
 
@@ -89,7 +92,10 @@ int test_plots(const std::string& file_list)
             {
                 auto part = sr->common.ixn.dlp[ixn].part.dlp[ipart];
 
-                if(part.pdg != 13 or not part.primary)
+                //if(!part.primary)
+                //    continue;
+
+                if(part.pdg == 13 or not part.primary)
                     continue;
 
                 //if(std::abs(part.pdg) != 211)
@@ -100,12 +106,14 @@ int test_plots(const std::string& file_list)
                 auto dir = TVector3(part.end) - TVector3(part.start);
                 auto angle = dir.Angle(beam_dir) * 180.0 / TMath::Pi();
                 //auto angle = TVector3(part.p).Angle(beam_dir) * 180.0 / TMath::Pi();
+                auto len = dir.Mag();
 
                 h_part_T->Fill(part.E);
                 h_part_p->Fill(p);
                 h_part_a->Fill(angle);
 
-                if(part.contained)
+                //if(part.contained)
+                if(len > 2.0)
                 {
                     h_part_T_cont->Fill(part.E);
                     h_part_p_cont->Fill(p);
