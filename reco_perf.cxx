@@ -155,12 +155,12 @@ int reco_perf(const std::string& file_list)
                 auto true_dir = TVector3(truth_match->end_pos) - TVector3(truth_match->start_pos);
                 auto true_angle = true_dir.Angle(beam_dir) * 180.0 / TMath::Pi();
 
-                //h_part_T->Fill(part.E);
+                h_part_T->Fill(part.E);
                 h_part_p->Fill(part.p.Mag());
                 h_part_a->Fill(angle);
 
-                //h_true_T->Fill(truth_match->E);
-                h_true_p->Fill(truth_match->p.Mag());
+                h_true_T->Fill(truth_match->p.E);
+                h_true_p->Fill(truth_match->p.Vect().Mag());
                 h_true_a->Fill(true_angle);
             }
         }
