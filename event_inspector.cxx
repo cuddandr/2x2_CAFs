@@ -14,6 +14,7 @@ struct Inspector
     void NextEvent();
     void LoadEvent(unsigned long evt);
     void ListInteractions();
+    void ListTrueParticles();
     void ListRecoParticles();
 };
 
@@ -101,6 +102,7 @@ void Inspector::LoadEvent(unsigned long evt)
 
 void Inspector::ListInteractions()
 {
+    std::cout << "Spill " << curr_evt << std::endl;
     const auto num_ixn = sr->common.ixn.ndlp;
     for(unsigned long ixn = 0; ixn < num_ixn; ++ixn)
     {
@@ -114,8 +116,11 @@ void Inspector::ListInteractions()
             auto idx = vec_truth_ixn.at(t);
             const auto& truth_ixn = sr->mc.nu[idx];
             std::cout << "Truth Vtx ID " << truth_ixn.id << " with overlap " << vec_overlap.at(t) << std::endl;
-            std::cout << "React : " << std::boolalpha << truth_ixn.iscc << " | " << truth_ixn.mode << std::endl;
-            std::cout << "PDG: " << truth_ixn.pdg << " | " << "E = " << truth_ixn.E << std::endl;
+            std::cout << "Target: " << truth_ixn.targetPDG << std::endl;
+            std::cout << "isRock: " << std::boolalpha << (truth_ixn.id < 1E9 ? false : true) << std::endl;
+            std::cout << "isCC  : " << std::boolalpha << truth_ixn.iscc << std::endl;
+            std::cout << "React : " << truth_ixn.mode << std::endl;
+            std::cout << "PDG   : " << truth_ixn.pdg << " | " << "E = " << truth_ixn.E << std::endl;
             std::cout << "N prtn: " << truth_ixn.nproton << std::endl;
             std::cout << "N neut: " << truth_ixn.nneutron << std::endl;
             std::cout << "N pip : " << truth_ixn.npip << std::endl;
@@ -124,6 +129,49 @@ void Inspector::ListInteractions()
 
             std::cout << "Nprim : " << truth_ixn.nprim << std::endl;
             std::cout << "Nsec  : " << truth_ixn.nsec  << std::endl;
+            std::cout << std::endl;
+        }
+    }
+    std::cout << "-------------------" << std::endl;
+}
+
+void Inspector::ListTrueParticles()
+{
+    const auto num_ixn = sr->common.ixn.ndlp;
+    for(unsigned long ixn = 0; ixn < num_ixn; ++ixn)
+    {
+        std::cout << "-------------------" << std::endl;
+        std::cout << "Reco interaction " << ixn << std::endl;
+        const auto& vec_truth_ixn = sr->common.ixn.dlp[ixn].truth;
+        const auto& vec_overlap = sr->common.ixn.dlp[ixn].truthOverlap;
+
+        for(unsigned long t = 0; t < vec_truth_ixn.size(); ++t)
+        {
+            auto idx = vec_truth_ixn.at(t);
+            const auto& truth_ixn = sr->mc.nu[idx];
+            std::cout << "Truth Vtx ID " << truth_ixn.id << " with overlap " << vec_overlap.at(t) << std::endl;
+
+            std::cout << "Truth Primaries: " << std::endl;
+            std::cout << "\tG4ID | PDG | P_mag" << std::endl;
+            for(unsigned int p = 0; p < truth_ixn.nprim; ++p)
+            {
+                auto q = truth_ixn.prim[p];
+                std::cout << "\t" << q.G4ID << " | " << q.pdg << " | " << q.p.Mag() << std::endl;
+                //std::cout << q.start_pos.X() << ", " << q.start_pos.Y() << ", " << q.start_pos.Z() << std::endl;
+                //std::cout << q.start_pos.Mag() << std::endl;
+                //std::cout << q.end_pos.Mag() << std::endl;
+            }
+
+            std::cout << "Truth Secondaries: " << std::endl;
+            std::cout << "\tG4ID | PDG | P_mag" << std::endl;
+            for(unsigned int s = 0; s < truth_ixn.nsec; ++s)
+            {
+                auto q = truth_ixn.sec[s];
+                std::cout << "\t" << q.G4ID << " | " << q.pdg << " | " << q.p.Mag() << std::endl;
+                //std::cout << q.start_pos.X() << ", " << q.start_pos.Y() << ", " << q.start_pos.Z() << std::endl;
+                //std::cout << q.start_pos.Mag() << std::endl;
+                //std::cout << q.end_pos.Mag() << std::endl;
+            }
         }
     }
 }
