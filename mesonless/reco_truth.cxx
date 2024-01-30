@@ -90,6 +90,7 @@ int reco_truth(const std::string& file_list)
                     std::cout << "VtxID : " << truth_ixn.id << " w/ overlap " << vec_overlap.at(t) << std::endl;
                     std::cout << "isRock: " << std::boolalpha << (truth_ixn.id < 1E9 ? false : true) << std::endl;
                     std::cout << "isCC  : " << std::boolalpha << truth_ixn.iscc << std::endl;
+                    std::cout << "Target: " << truth_ixn.targetPDG << std::endl;
                     std::cout << "Reac #: " << truth_ixn.mode << std::endl;
                     std::cout << "N prtn: " << truth_ixn.nproton << std::endl;
                     std::cout << "N neut: " << truth_ixn.nneutron << std::endl;
