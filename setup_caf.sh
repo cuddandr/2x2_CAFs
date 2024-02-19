@@ -25,6 +25,9 @@ setup duneanaobj v03_02_01 -q e26:prof
 # shut up ROOT include errors
 export ROOT_INCLUDE_PATH=$ROOT_INCLUDE_PATH:$GENIE_INC/GENIE
 
+# add SRProxy path to ROOT to allow for use in ROOT macros
+export ROOT_INCLUDE_PATH=$SRPROXY_INC:$ROOT_INCLUDE_PATH
+
 # nusystematics paths
 #export NUSYST=${PWD}/nusystematics
 #export LD_LIBRARY_PATH=${NUSYST}/build/Linux/lib:$LD_LIBRARY_PATH
