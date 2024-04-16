@@ -53,6 +53,9 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
     std::vector< double >  reco_angle;
     std::vector< double >  reco_angle_rot;
     std::vector< double >  reco_angle_incl;
+    std::vector< double >  reco_angle_x;
+    std::vector< double >  reco_angle_y;
+    std::vector< double >  reco_angle_z;
     std::vector< double >  reco_track_start_x;
     std::vector< double >  reco_track_start_y;
     std::vector< double >  reco_track_start_z;
@@ -71,6 +74,9 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
     std::vector< double >  true_angle;
     std::vector< double >  true_angle_rot;
     std::vector< double >  true_angle_incl;
+    std::vector< double >  true_angle_x;
+    std::vector< double >  true_angle_y;
+    std::vector< double >  true_angle_z;
     std::vector< double >  true_track_start_x;
     std::vector< double >  true_track_start_y;
     std::vector< double >  true_track_start_z;
@@ -98,6 +104,9 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
     fRecoBenchmarkTree->Branch("reco_angle", &reco_angle);
     fRecoBenchmarkTree->Branch("reco_angle_rot", &reco_angle_rot);
     fRecoBenchmarkTree->Branch("reco_angle_incl", &reco_angle_incl);
+    fRecoBenchmarkTree->Branch("reco_angle_x", &reco_angle_x);
+    fRecoBenchmarkTree->Branch("reco_angle_y", &reco_angle_y);
+    fRecoBenchmarkTree->Branch("reco_angle_z", &reco_angle_z);
     fRecoBenchmarkTree->Branch("reco_track_start_x", &reco_track_start_x);
     fRecoBenchmarkTree->Branch("reco_track_start_y", &reco_track_start_y);
     fRecoBenchmarkTree->Branch("reco_track_start_z", &reco_track_start_z);
@@ -118,6 +127,9 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
     fRecoBenchmarkTree->Branch("true_angle", &true_angle);
     fRecoBenchmarkTree->Branch("true_angle_rot", &true_angle_rot);
     fRecoBenchmarkTree->Branch("true_angle_incl", &true_angle_incl);
+    fRecoBenchmarkTree->Branch("true_angle_x", &true_angle_x);
+    fRecoBenchmarkTree->Branch("true_angle_y", &true_angle_y);
+    fRecoBenchmarkTree->Branch("true_angle_z", &true_angle_z);
     fRecoBenchmarkTree->Branch("true_track_start_x", &true_track_start_x);
     fRecoBenchmarkTree->Branch("true_track_start_y", &true_track_start_y);
     fRecoBenchmarkTree->Branch("true_track_start_z", &true_track_start_z);
@@ -139,6 +151,8 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
 
     //z-direction (roughly beam dir)
     const auto z_plus_dir = TVector3(0, 0, 1.0);
+    const auto y_plus_dir = TVector3(0, 1.0, 0.0);
+    const auto x_plus_dir = TVector3(1.0, 0, 0.0);
 
     //negative y-direction 
     const auto y_minus_dir = TVector3(0, -1.0, 0.0);
@@ -414,6 +428,9 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
                 reco_length.push_back(length);
                 dir.RotateY(TMath::Pi()/2);
                 reco_angle.push_back(dir.Angle(beam_dir));
+                reco_angle_x.push_back(dir.Angle(x_plus_dir));
+                reco_angle_y.push_back(dir.Angle(y_plus_dir));
+                reco_angle_z.push_back(dir.Angle(z_plus_dir));
                 dir.RotateY(-TMath::Pi()/2);
                 reco_angle_rot.push_back(dir.Theta());
                 reco_angle_incl.push_back(dir.Phi());
@@ -432,6 +449,9 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
                 true_length.push_back(true_length_val);
                 true_dir.RotateY(TMath::Pi()/2);
                 true_angle.push_back(true_dir.Angle(beam_dir));
+                true_angle_x.push_back(true_dir.Angle(x_plus_dir));
+                true_angle_y.push_back(true_dir.Angle(y_plus_dir));
+                true_angle_z.push_back(true_dir.Angle(z_plus_dir));
                 true_dir.RotateY(-TMath::Pi()/2);
                 true_angle_rot.push_back(true_dir.Theta());
                 true_angle_incl.push_back(true_dir.Phi());
