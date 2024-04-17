@@ -6,7 +6,7 @@
 //Requires a file containing a list of input CAF files and returns an int code for success/error
 //The list should be one file/path per line, and files/lines can be commented out using #
 //Boolean flag to switch behavior for reading structured/flat CAFs (defaults to structured CAFs)
-int reco_benchmark(const std::string& file_list, bool is_flat = false)
+int reco_benchmark_reco_sample(const std::string& file_list, bool is_flat = false)
 {
     
     std::vector<std::string> root_list;
@@ -171,68 +171,7 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
     const float tpc_y = 0.0; // -268.0;
     const float tpc_z = 0.0; //(1333.5 + 1266.5) / 2.0;
 
-    TH1F* h_num_ixn = new TH1F("h_num_ixn", "h_num_ixn", 10, 0, 10);
-
-    TH1F* h_part_T = new TH1F("h_part_T", "h_part_T", 50, 0.0, 0.5);
-    TH1F* h_part_p = new TH1F("h_part_p", "h_part_p", 50, 0.0, 1.0);
-    TH1F* h_part_a = new TH1F("h_part_a", "h_part_a", 50, -1.0,1.0);
-    TH1F* h_part_a_rot = new TH1F("h_part_a_rot", "h_part_a_rot", 50, -1.0,1.0);
-    TH1F* h_part_a_incl = new TH1F("h_part_a_incl", "h_part_a_incl", 50, -1.0,1.0);
-    TH1F* h_part_l = new TH1F("h_part_l", "h_part_l", 30, 0.0, 60);
-    TH1F* h_part_pdg = new TH1F("h_part_pdg", "h_part_pdg", 20000, -10000, 10000);
-
-    TH1F* h_true_T = new TH1F("h_true_T", "h_true_T", 50, 0.0, 0.5);
-    TH1F* h_true_p = new TH1F("h_true_p", "h_true_p", 50, 0.0, 1.0);
-    TH1F* h_true_a = new TH1F("h_true_a", "h_true_a", 50, -1.0,1.0);
-    TH1F* h_true_a_rot = new TH1F("h_true_a_rot", "h_true_a_rot", 50, -1.0,1.0);
-    TH1F* h_true_a_incl = new TH1F("h_true_a_incl", "h_true_a_incl", 50, -1.0,1.0);
-    TH1F* h_true_l = new TH1F("h_true_l", "h_true_l", 30, 0.0, 60);
-    TH1F* h_true_pdg = new TH1F("h_true_pdg", "h_true_pdg", 20000, -10000, 10000);
-
-    TH1F* h_diff_T = new TH1F("h_diff_T", "h_diff_T", 150, -0.5, 1.0);
-    TH1F* h_diff_p = new TH1F("h_diff_p", "h_diff_p", 150, -1.0, 2.0);
-    TH1F* h_diff_a = new TH1F("h_diff_a", "h_diff_a", 100, -2.0,2.0);
-    TH1F* h_diff_a_rot = new TH1F("h_diff_a_rot", "h_diff_a_rot", 100, -2.0,2.0);
-    TH1F* h_diff_a_incl = new TH1F("h_diff_a_incl", "h_diff_a_incl", 100, -2.0,2.0);
-    TH1F* h_diff_l = new TH1F("h_diff_l", "h_diff_l", 90, -60.0, 120);
-
-    TH1F* h_ovlp = new TH1F("h_ovlp", "h_ovlp", 100, 0.0, 1.0);
-
-    TH1F* h_vtx_x = new TH1F("h_vtx_x", "h_vtx_x", 50, -100 + tpc_x, 100 + tpc_x);
-    TH1F* h_vtx_y = new TH1F("h_vtx_y", "h_vtx_y", 50, -100 + tpc_y, 100 + tpc_y);
-    TH1F* h_vtx_z = new TH1F("h_vtx_z", "h_vtx_z", 50, -100 + tpc_z, 100 + tpc_z);
-
-
-    h_num_ixn->SetTitle("Number of ML Reco Interactions Per Event;ML Reco Interactions;Count [Events/Interaction]");
-
-    h_part_T->SetTitle("ML Reco Primary Track Energy;Energy [GeV];Count [Tracks/0.01 GeV]");
-    h_part_p->SetTitle("ML Reco Primary Track Momentum;Momentum [GeV/cm];Count [Tracks/0.02 GeV/cm]");
-    h_part_a->SetTitle("ML Reco Cosine of Primary Track Angle;Cosine of Track Angle with respect to Beam Direction;Count [Tracks/0.04]");
-    h_part_a_rot->SetTitle("ML Reco Cosine of Primary Track Rotational Angle Projected onto Anode;Cosine of Track Rotational Angle Projected onto Anode;Count [Tracks/0.04]");
-    h_part_a_incl->SetTitle("ML Reco Cosine of Primary Track Inclination Angle with respect to Anode;Cosine of Track Inclination Angle with respect to Anode;Count [Tracks/0.04]");
-    h_part_l->SetTitle("ML Reco Primary Track Length;Length [cm];Count [Tracks/2 cm]");
-    h_part_pdg->SetTitle("ML Reco Primary Track PDG;PDG;Count [Tracks/1]");
-
-    h_true_T->SetTitle("True Primary Track Energy;Energy [GeV];Count [Tracks/0.01 GeV]");
-    h_true_p->SetTitle("True Primary Track Momentum;Momentum [GeV/cm];Count [Tracks/0.02 GeV/cm]");
-    h_true_a->SetTitle("True Cosine of Primary Track Angle;Cosine of Track Angle with respect to Beam Direction [#circ];Count [Tracks/0.04]");
-    h_true_a_rot->SetTitle("True Cosine of Primary Track Rotational Angle Projected onto Anode;Cosine of Track Rotational Angle Projected onto Anode;Count [Tracks/0.04]");
-    h_true_a_incl->SetTitle("True Cosine of Primary Track Inclination Angle with respect to Anode;Cosine of Track Inclination Angle with respect to Anode;Count [Tracks/0.04]");
-    h_true_l->SetTitle("True Primary Track Length;Length [cm];Count [Tracks/2 cm]");
-    h_true_pdg->SetTitle("True Primary Track PDG;PDG;Count [Tracks/1]");
-
-    h_diff_T->SetTitle("Difference in ML Reco and True Primary Track Energy;Energy [GeV];Count [Tracks/0.01 GeV]");
-    h_diff_p->SetTitle("Difference in ML Reco and True Primary Track Momentum;Momentum [GeV/cm];Count [Tracks/0.02 GeV/cm]");
-    h_diff_a->SetTitle("Difference in ML Reco and True Cosine of Primary Track Angle;Cosine of Track Angle with respect to Beam Direction [#circ];Count [Tracks/0.04]");
-    h_diff_a_rot->SetTitle("Difference in ML Reco and True Cosine of Primary Track Rotational Angle Projected onto Anode;Cosine of Track Rotational Angle Projected onto Anode;Count [Tracks/0.04]");
-    h_diff_a_incl->SetTitle("Difference in ML Reco and True Cosine of Primary Track Inclination Angle with respect to Anode;Cosine of Track Inclination Angle with respect to Anode;Count [Tracks/0.04]");
-    h_diff_l->SetTitle("Difference in ML Reco and True Primary Track Length;Length [cm];Count [Tracks/2 cm]");
-    h_ovlp->SetTitle("Overlap of ML Reco and True Primary Track;Overlap;Count [Tracks/0.01]");
-
-    h_vtx_x->SetTitle("Interaction ML Reco Vertex x-Position;x Position [cm];Count [Events/4 cm]");
-    h_vtx_y->SetTitle("Interaction ML Reco Vertex y-Position;y Position [cm];Count [Events/4 cm]");
-    h_vtx_z->SetTitle("Interaction ML Reco Vertex z-Position;z Position [cm];Count [Events/4 cm]");
-
+    
     //Attach SR object to the tree, not using SRProxy (SR Proxy used below)
     //auto sr = new caf::StandardRecord;
     //caf_chain->SetBranchAddress("rec", &sr);
@@ -270,7 +209,6 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
             std::cout << "Spill #: " << i << std::endl;
 
         const auto num_ixn = sr->common.ixn.ndlp;
-        h_num_ixn->Fill(num_ixn);
 
         for(unsigned long ixn = 0; ixn < num_ixn; ++ixn)
         {
@@ -308,12 +246,10 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
             //if(truth_ixn.targetPDG != 1000180400)
             //    continue;
 
-            if(std::isfinite(vtx.x) && std::isfinite(vtx.y) && std::isfinite(vtx.z))
-            {
-                h_vtx_x->Fill(vtx.x);
-                h_vtx_y->Fill(vtx.y);
-                h_vtx_z->Fill(vtx.z);
-            }
+            //if(std::isfinite(vtx.x) && std::isfinite(vtx.y) && std::isfinite(vtx.z))
+            //{
+            //    //enter action here
+            //}
 
             auto reco_ixn_trks = 0;
             auto true_ixn_trks = 0;
@@ -338,13 +274,13 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
 
                 //Put reco particle cuts here
                 if((abs(abs(part.start.z)-64.538) < 1.0) and (abs(abs(part.end.z)-64.538)) < 1.0){
-                    std::cout<<"Particle Start:"<<part.start.z<<" End:"<<part.end.z<<std::endl;
+                    //std::cout<<"Particle Start:"<<part.start.z<<" End:"<<part.end.z<<std::endl;
                     continue;
                 }
 
                 //Put reco particle cuts here
                 if((abs(part.start.z+64.538) < 1.0) or (abs(part.end.z+64.538) < 1.0)){
-                    std::cout<<"Particle Start:"<<part.start.z<<" End:"<<part.end.z<<std::endl;
+                    //std::cout<<"Particle Start:"<<part.start.z<<" End:"<<part.end.z<<std::endl;
                     continue;
                 }
 
@@ -481,34 +417,7 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
                 subrun.push_back(sr->meta.nd_lar.subrun);
                 caf_file_name.push_back(f.c_str());
 
-                //Reco kinematics cuts
-                if(length > 60)
-                    continue;
 
-                h_part_T->Fill(part.E);
-                h_part_p->Fill(pvec.Mag());
-                h_part_a->Fill(cos_angle);
-                h_part_a_rot->Fill(cos_rot_anode_angle);
-                h_part_a_incl->Fill(cos_incl_anode_angle);
-                h_part_l->Fill(length);
-                h_part_pdg->Fill(part.pdg);
-
-                h_true_T->Fill(truth_match->p.E);
-                h_true_p->Fill(true_pvec.Mag());
-                h_true_a->Fill(true_cos_angle);
-                h_true_a_rot->Fill(true_cos_rot_anode_angle);
-                h_true_a_incl->Fill(true_cos_incl_anode_angle);
-                h_true_l->Fill(true_length_val);
-                h_true_pdg->Fill(truth_match->pdg);
-
-                h_diff_T->Fill(T_diff);
-                h_diff_p->Fill(p_diff);
-                h_diff_a->Fill(cos_angle_diff);
-                h_diff_a_rot->Fill(true_cos_rot_anode_angle - cos_rot_anode_angle);
-                h_diff_a_incl->Fill(true_cos_incl_anode_angle - cos_incl_anode_angle);
-                h_diff_l->Fill(length_diff);
-
-                h_ovlp->Fill(current_max);
             }
             // Loop over particles in the interaction again to load charged track multiplicity
             for(unsigned long ipart = 0; ipart < reco_ixn_trks; ++ipart)
@@ -522,126 +431,8 @@ int reco_benchmark(const std::string& file_list, bool is_flat = false)
     const auto t_end{std::chrono::steady_clock::now()};
     const std::chrono::duration<double> t_elapsed{t_end - t_start};
 
-    //Write plots to ROOT file, overwriting the ROOT file
-    TFile* caf_output = new TFile("caf_plots.root", "recreate");
-    h_num_ixn->Write();
-    h_vtx_x->Write();
-    h_vtx_y->Write();
-    h_vtx_z->Write();
-    h_part_T->Write();
-    h_part_p->Write();
-    h_part_a->Write();
-    h_part_a_rot->Write();
-    h_part_a_incl->Write();
-    h_part_l->Write();
-    h_part_pdg->Write();
-    h_true_T->Write();
-    h_true_p->Write();
-    h_true_a->Write();
-    h_true_a_rot->Write();
-    h_true_a_incl->Write();
-    h_true_l->Write();
-    h_true_pdg->Write();
-    h_diff_T->Write();
-    h_diff_p->Write();
-    h_diff_a->Write();
-    h_diff_a_rot->Write();
-    h_diff_a_incl->Write();
-    h_diff_l->Write();
-    h_ovlp->Write();
-    caf_output->Close();
-
-    //Write plots to PDF files, overwriting the previous files
-    TCanvas* c_part_a_comp = new TCanvas("c_part_a_comp", "c_part_a_comp");
-    c_part_a_comp->cd();
-    h_part_a->SetTitle("ML Reco vs. Truth Cosine of Primary Track Angle;Cosine of Track Angle with respect to Beam Direction;Count [Tracks/0.04]");
-    h_part_a->SetLineColor(kRed);
-    h_part_a->Draw();
-    h_true_a->SetTitle("ML Reco vs. Truth Cosine of Primary Track Angle;Cosine of Track Angle with respect to Beam Direction;Count [Tracks/0.04]");
-    h_true_a->SetLineColor(kBlue);
-    h_true_a->Draw("SAME");
-    TLegend* leg_a = new TLegend(0.7, 0.7, 0.85, 0.85);
-    leg_a->AddEntry(h_part_a, "ML Reco", "l");
-    leg_a->AddEntry(h_true_a, "Truth", "l");
-    leg_a->Draw();
-    gStyle->SetOptStat(0); //turn off stats box
-    c_part_a_comp->Update();
-    c_part_a_comp->SaveAs("c_part_a_comp.pdf", "recreate");
-
-    TCanvas* c_part_a_rot_comp = new TCanvas("c_part_a_rot_comp", "c_part_a_rot_comp");
-    c_part_a_rot_comp->cd();
-    h_part_a_rot->SetTitle("ML Reco vs. Truth Cosine of Primary Track Rotational Angle Projected onto Anode;Cosine of Track Rotational Angle Projected onto Anode;Count [Tracks/0.04]");
-    h_part_a_rot->SetLineColor(kRed);
-    h_part_a_rot->Draw();
-    h_true_a_rot->SetTitle("ML Reco vs. Truth Cosine of Primary Track Rotational Angle Projected onto Anode;Cosine of Track Rotational Angle Projected onto Anode;Count [Tracks/0.04]");
-    h_true_a_rot->SetLineColor(kBlue);
-    h_true_a_rot->Draw("SAME");
-    TLegend* leg_a_rot = new TLegend(0.7, 0.7, 0.85, 0.85);
-    leg_a_rot->AddEntry(h_part_a_rot, "ML Reco", "l");
-    leg_a_rot->AddEntry(h_true_a_rot, "Truth", "l");
-    leg_a_rot->Draw();
-    gStyle->SetOptStat(0); //turn off stats box
-    c_part_a_rot_comp->Update();
-    c_part_a_rot_comp->SaveAs("c_part_a_rot_comp.pdf", "recreate");
-
-    TCanvas* c_part_a_incl_comp = new TCanvas("c_part_a_incl_comp", "c_part_a_incl_comp");
-    c_part_a_incl_comp->cd();
-    h_part_a_incl->SetTitle("ML Reco vs. Truth Cosine of Primary Track Inclination Angle with respect to Anode;Cosine of Track Inclination Angle with respect to Anode;Count [Tracks/0.04]");
-    h_part_a_incl->SetLineColor(kRed);
-    h_part_a_incl->Draw();
-    h_true_a_incl->SetTitle("ML Reco vs. Truth Cosine of Primary Track Inclination Angle with respect to Anode;Cosine of Track Inclination Angle with respect to Anode;Count [Tracks/0.04]");
-    h_true_a_incl->SetLineColor(kBlue);
-    h_true_a_incl->Draw("SAME");
-    TLegend* leg_a_incl = new TLegend(0.7, 0.7, 0.85, 0.85);
-    leg_a_incl->AddEntry(h_part_a_incl, "ML Reco", "l");
-    leg_a_incl->AddEntry(h_true_a_incl, "Truth", "l");
-    leg_a_incl->Draw();
-    gStyle->SetOptStat(0); //turn off stats box
-    c_part_a_incl_comp->Update();
-    c_part_a_incl_comp->SaveAs("c_part_a_incl_comp.pdf", "recreate");
-
-    TCanvas* c_part_l_comp = new TCanvas("c_part_l_comp", "c_part_l_comp");
-    c_part_l_comp->cd();
-    h_part_l->SetTitle("ML Reco vs. Truth Primary Track Length;Length [cm];Count [Tracks/2 cm]");
-    h_part_l->SetLineColor(kRed);
-    h_part_l->Draw();
-    h_true_l->SetTitle("ML Reco vs. Truth Primary Track Length;Length [cm];Count [Tracks/2 cm]");
-    h_true_l->SetLineColor(kBlue);
-    h_true_l->Draw("SAME");
-    TLegend* leg_l = new TLegend(0.7, 0.7, 0.85, 0.85);
-    leg_l->AddEntry(h_part_l, "ML Reco", "l");
-    leg_l->AddEntry(h_true_l, "Truth", "l");
-    leg_l->Draw();
-    gStyle->SetOptStat(0); //turn off stats box
-    c_part_l_comp->Update();
-    c_part_l_comp->SaveAs("c_part_l_comp.pdf", "recreate");
-
-    // Draw PDG Pie Chart for Truth Matches
-    /*std::vector<char> true_pdg_codes;
-    std::vector<double> true_pdg_counts;
-    char counter; 
-    for (int i = 1; i <= h_true_pdg->GetNbinsX(); i++) {
-        if (h_true_pdg->GetBinContent(i) > 0) {
-            true_pdg_codes.push_back(h_true_pdg->GetBin(i-1-10000));
-            true_pdg_counts.push_back(h_true_pdg->GetBinContent(i));
-            counter++;
-            std::cout << h_true_pdg->GetBin(i-1-10000) << " " << h_true_pdg->GetBinContent(i) << std::endl;
-        }
-    }
-
-    //const char** true_pdg_codes_labels = &true_pdg_codes;
-    double* true_pdg_counts_arr = &true_pdg_counts[0];
-    TCanvas* c_true_pdg_pie = new TCanvas("c_true_pdg_pie", "c_true_pdg_pie");
-    c_true_pdg_pie->cd();
-    TPie *p_true_pdg = new TPie("p_true_pdg", "Matched True Primary Track PDG", counter, true_pdg_counts_arr);
-    p_true_pdg->SetCircle(.5,.5,.4);
-    p_true_pdg->SetLabelsOffset(.01);
-    //p_true_pdg->SetLabels(true_pdg_codes_labels);
-    c_true_pdg_pie->Update();
-    c_true_pdg_pie->SaveAs("c_true_pdg_pie.pdf", "recreate"); */
-
         // Output TTree file name
-    std::string file_name = "track_reco_benchmark";
+    std::string file_name = "track_reco_benchmark_reco_sample";
 
     // DEFINE: Output TFile
     TFile *f=new TFile(Form("%s.root", file_name.c_str()),"RECREATE");
