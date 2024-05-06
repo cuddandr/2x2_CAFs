@@ -41,8 +41,8 @@ int mesonless(const std::string& file_list)
 
     //Offsets for 2x2 TPC center
     const float tpc_x = 0.0;
-    const float tpc_y = -268.0;
-    const float tpc_z = (1333.5 + 1266.5) / 2.0;
+    const float tpc_y = 0.0; //-268.0;
+    const float tpc_z = 0.0; //(1333.5 + 1266.5) / 2.0;
 
     TH1F* h_part_T = new TH1F("h_part_T", "h_part_T", 50, 0.0, 0.5);
     TH1F* h_part_T_cont = new TH1F("h_part_T_cont", "h_part_T_cont", 50, 0.0, 0.5);
@@ -91,6 +91,14 @@ int mesonless(const std::string& file_list)
             total_ixn++;
             const auto& vtx = sr->common.ixn.dlp[ixn].vtx;
 
+            const float tpc_border = 67;
+            const float wall_cut = 5.0;
+            bool cut_vtx_x = std::abs(vtx.x) > wall_cut && std::abs(vtx.x) < (tpc_border - wall_cut);
+            bool cut_vtx_y = std::abs(vtx.y) > wall_cut && std::abs(vtx.y) < (tpc_border - wall_cut);
+            bool cut_vtx_z = std::abs(vtx.z) > wall_cut && std::abs(vtx.z) < (tpc_border - wall_cut);
+            if(!(cut_vtx_x && cut_vtx_y && cut_vtx_z))
+                continue;
+
             if(std::isfinite(vtx.x) && std::isfinite(vtx.y) && std::isfinite(vtx.z))
             {
                 h_vtx_x->Fill(vtx.x);
@@ -137,8 +145,8 @@ int mesonless(const std::string& file_list)
             if((num_muons != 1) or (num_pions > 0))
                 continue;
 
-            if(num_prtns == 0)
-                continue;
+            //if(num_prtns == 0)
+            //    continue;
 
             num_passed++;
             std::cout << "Reco particles: ";
@@ -182,7 +190,7 @@ int mesonless(const std::string& file_list)
                 auto part = sr->common.ixn.dlp[ixn].part.dlp[ipart];
 
                 //if((part.pdg != 2212 and part.pdg != 13) or not part.primary)
-                if(part.pdg != 2212 or not part.primary)
+                if(std::abs(part.pdg) != 13 or not part.primary)
                     continue;
 
                 const auto& vec_truth_id = part.truth;
