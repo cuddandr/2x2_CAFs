@@ -21,47 +21,87 @@ from matplotlib.backends.backend_pdf import PdfPages
 from plot_utils import rasterize_plots, vectorize_plots
 rasterize_plots()
 
-def main(ttree_file, protons_only = False):
+def main(true_sample_file, reco_sample_file, overlap_cut=0.5, protons_only = False):
 
-    tracks = uproot.open(ttree_file)
+    # Load dataframes for reco and true track samples
+    tracks = uproot.open(reco_sample_file)
     df = tracks["RecoBenchmarkTree"].arrays(library="pd")
+    df['caf_file_name'] = df['caf_file_name'][0][0]
 
-    # Bin tracks by length + add binning to dataframe
+    true_tracks = uproot.open(true_sample_file)
+    df_true = true_tracks["RecoBenchmarkTree"].arrays(library="pd")
+    df_true['caf_file_name'] = df_true['caf_file_name'][0][0]
+
+    # Bin tracks by length + add binning to dataframes
     num_length_bins = 15
     max_length = 150
     length_bins = np.linspace(0.,max_length, num_length_bins)
     reco_length_bin_nums = np.digitize(df['reco_length'], length_bins)
     df['reco_length_bin'] = reco_length_bin_nums
 
+    true_length_bin_nums = np.digitize(df_true['true_length'], length_bins) 
+    df_true['true_length_bin'] = true_length_bin_nums   
+
     # Filter by overlap between reco and true tracks
-    ovlp_cut = 0.5
+    ovlp_cut = overlap_cut
     df_filtered = df[df['overlap']>=ovlp_cut]
+
+    df_filtered['global_event_id'] = df_filtered['caf_file_name'] + '_' + df_filtered['event'].astype(str) \
+        + '_' + df_filtered['spill_index'].astype(str) + '_' + df_filtered['true_ixn_index'].astype(str) \
+        + '_' + df_filtered['true_pdg'].astype(str) + '_' + df_filtered['true_track_start_x'].astype(str)
+    print("True matched tracks:", len(df_filtered))
+    print("Unique matched tracks:", len(df_filtered['global_event_id'].unique()))
 
     # Set up sample labels
     if protons_only:
+        df = df[df['true_pdg']==2212]
         df_filtered = df_filtered[df_filtered['true_pdg']==2212]
+        df_true = df_true[df_true['true_pdg']==2212]
         sample = '_protons_'
         sample_label = 'Protons'
     else:
         sample = '_charged_tracks_'
         sample_label = 'Charged Tracks'
 
-    # Group df_filtered by reco_length_bin for relevant plots
+    # Group df_filtered by reco_length_bin and df_true by true length bin for relevant plots
     grouped_length = df_filtered.groupby('reco_length_bin')
+    true_grouped_length = df_true.groupby('true_length_bin')
+
+    # Calculate global scale factor 
+    global_scale_factor = len(df_filtered)/len(df_true)
 
     print('\n----------------- File content -----------------')
-    print('File:',ttree_file)
+    print('True Sample File:', true_sample_file)
+    print('Reco Sample File:', reco_sample_file)
     print('Sample:', sample_label)
-    print('Number of tracks:', len(df_filtered))
+    print('Number of reconstructed tracks:', len(df_filtered))
+    print('Number of true tracks:', len(df_true))
     print('------------------------------------------------\n')
 
     # Set up output file
-    output_pdf_name = ttree_file.split('.root')[0]+sample+str(ovlp_cut)+'_ovlp_cut_validations.pdf'
-    # put output in this directory vs. where TTree file is stored
+    output_pdf_name = 'track_reco_benchmark'+sample+str(ovlp_cut)+'_ovlp_cut_validations.pdf'
+    # put output in this directory vs. where TTree files are stored
     output_pdf_name = output_pdf_name.split('/')[-1] # !!
 
     # Make plots in output file
     with PdfPages(output_pdf_name) as output:
+
+        # Plot overlap distribution: 
+        fig = plt.figure(figsize=[8,6])
+        axs = fig.add_subplot(111)
+        reco_counts, reco_bins, _ = axs.hist(df['overlap'], alpha=1, bins=50, range=(0,1), \
+                                             histtype='stepfilled', color='salmon')
+        axs.set_xlabel('ML Reco vs. Matched True Track Overlap Score', fontsize=12)
+        axs.set_ylabel('Count [Tracks / 0.02]', fontsize=12)
+        axs.set_xlim(0, 1)
+        plt.axvline(x=ovlp_cut, color='navy', linestyle='--') 
+        axs.text(ovlp_cut-0.01, max(reco_counts)/2, 'Overlap Cut', \
+            color='navy', ha='right', fontsize=14)
+        axs.set_yscale('log')
+        axs.set_title('ML Reco vs. Matched True Track Overlap Score for Reconstructed \n'+sample_label+' Sample', fontsize=15)
+        plt.tight_layout()
+        output.savefig()
+        plt.close()
 
         # Plot Angles by Length for various numbers of bins shown
         # Also Plot differences in angles between true and reco tracks
@@ -79,12 +119,12 @@ def main(ttree_file, protons_only = False):
                                                   -abs(np.cos(df_filtered['reco_'+angle_names[j]]))), \
                                                   alpha=1.0, bins=100, range=(-1, 1), histtype='stepfilled', \
                                                   color='limegreen')
-            axs.set_xlabel('Difference in True vs. ML Reco Absolute Value of Cosine of '+angle_labels[j], fontsize=12)
+            axs.set_xlabel('(Matched True - ML Reco) Difference in Absolute Value of Cosine of '+angle_labels[j], fontsize=12)
             axs.set_ylabel('Count [Tracks / 0.02]', fontsize=12)
             axs.set_xlim(-1,1)
             axs.set_yscale('log')
             plt.axvline(x=cut_lines[j], color='navy', linestyle='--') 
-            fig.suptitle('(True - ML Reco) Difference in Absolute Value of Cosine of \n'+angle_labels[j]+' for Reconstructed '+sample_label+' Sample', fontsize=16)
+            fig.suptitle('(Matched True - ML Reco) Difference in Absolute Value of Cosine of \n'+angle_labels[j]+' for Reconstructed '+sample_label+' Sample', fontsize=16)
             plt.tight_layout()
             output.savefig()
             plt.close()
@@ -95,6 +135,7 @@ def main(ttree_file, protons_only = False):
                 plot_angle_by_length(sample_name=sample_label,angle_field=angle_names[j], \
                                      angle_label=angle_labels[j], \
                                      df_length_grouped = grouped_length, \
+                                     df_true_length_grouped = true_grouped_length, \
                                      bins_shown = b, max_bins = num_length_bins, \
                                      max_track_length = max_length)
                 output.savefig()
@@ -105,17 +146,28 @@ def main(ttree_file, protons_only = False):
         # Plot Track Lengths
         fig = plt.figure(figsize=[8,6])
         axs = fig.add_subplot(111)
-        reco_counts, reco_bins, _ = axs.hist(df_filtered['reco_length'], alpha=0.5, bins=50, \
-                                            range=(0, 150), histtype='stepfilled', \
+        reco_counts, reco_bins, _ = axs.hist(df_filtered['reco_length'], alpha=0.5, bins=100, \
+                                            range=(0, 300), histtype='stepfilled', \
                                             label='ML Reco Track Length')
-        true_counts, true_bins, _ = axs.hist(df_filtered['true_length'], alpha=0.5, bins=50, \
-                                            range=(0, 150),histtype='stepfilled', \
-                                            label='True Track Length')
+        true_counts, true_bins, _ = axs.hist(df_filtered['true_length'], alpha=0.5, bins=100, \
+                                            range=(0, 300),histtype='stepfilled', \
+                                            label='Matched True Track Length')
+        #exp_counts, exp_bins, _ = axs.hist(df_true['true_length'], alpha=1, bins=100, \
+        #                                    range=(0, 300),histtype='step', \
+        #                                    label='Expected True Track Length',\
+        #                                    weights=global_scale_factor*np.ones(len(df_true['true_length'])), \
+        #                                    linestyle='dashed', color='#774300', linewidth=1.5)
+        #print("Expected true tracks:", np.sum(global_scale_factor*np.ones(len(df_true['true_length']))))
+        #print("Expected true tracks ixn charged multiplicity:", np.sum(global_scale_factor*np.ones(len(df_true['true_ixn_charged_track_mult']))))
+        #print("Total Expected Tracks (Track Length):", np.sum(exp_counts))
+        #print("Total Expected Tracks (Track Length) UNWEIGHTED:", np.sum(exp_countsnw))
+        print("Total True Tracks (Track Length):", np.sum(true_counts))
+        print("Total Reco Tracks (Track Length):", np.sum(reco_counts))
         axs.set_xlabel('Track Length [cm]', fontsize=12)
         axs.set_ylabel('Count ['+sample_label+' / 3 cm]', fontsize=12)
         axs.set_xlim(0, 150)
         axs.legend(loc='upper right', fontsize=12)
-        axs.set_title('True vs. ML Reco Track Length for Reconstructed'+sample_label+' Sample', \
+        axs.set_title('ML Reco vs. Matched True Track Length for Reconstructed '+sample_label+' Sample', \
                       fontsize=15)
         plt.tight_layout()
         output.savefig()
@@ -125,15 +177,15 @@ def main(ttree_file, protons_only = False):
         fig = plt.figure(figsize=[8,6])
         axs = fig.add_subplot(111)
         diff_counts, diff_bins, _ = axs.hist(df_filtered['true_length']-df_filtered['reco_length'], \
-                                             alpha=1.0, bins=150, range=(-150, 150),\
+                                             alpha=1.0, bins=300, range=(-300, 300),\
                                              histtype='stepfilled', color='limegreen')
-        axs.set_xlabel('Difference in True vs. Reco Track Length [cm]', fontsize=12)
+        axs.set_xlabel('(Matched True - ML Reco) Difference in Track Length [cm]', fontsize=12)
         axs.set_ylabel('Count ['+sample_label+' / 2 cm]', fontsize=12)
         axs.set_xlim(-130, 75)
         axs.set_yscale('log')
         plt.axvline(x=10, color='navy', linestyle='--')  # Draw a red dashed line at x=10
         plt.axvline(x=-10, color='navy', linestyle='--')  # Draw a red dashed line at x=-10
-        fig.suptitle('(True - ML Reco) Track Length Difference \nfor Reconstructed '+sample_label+' Sample', fontsize=16)
+        fig.suptitle('(Matched True - ML Reco) Track Length Difference \nfor Reconstructed '+sample_label+' Sample', fontsize=16)
         plt.tight_layout()  
         output.savefig()
         plt.close()
@@ -144,8 +196,8 @@ def main(ttree_file, protons_only = False):
                                                df_filtered['true_length'], \
                                                bins=50, range=[[0, 150], [0, 150]], cmap='pink')
         ax.set_xlabel('ML Reco Track Length [cm]', fontsize=12)
-        ax.set_ylabel('True Track Length [cm]', fontsize=12)
-        ax.set_title('ML Reco vs True Match Length for Reconstructed '+sample_label+' Sample', fontsize=16)
+        ax.set_ylabel('Matched True Track Length [cm]', fontsize=12)
+        ax.set_title('ML Reco vs Matched True Length for \n Reconstructed '+sample_label+' Sample', fontsize=16)
         cbar = plt.colorbar(im, ax=ax)
         cbar.set_label('Counts ['+sample_label+' / 3 cm]', fontsize=12)
         plt.tight_layout()
@@ -163,7 +215,14 @@ def main(ttree_file, protons_only = False):
             reco_countsx, reco_binsx, _x = axs[0].hist(df_filtered['reco_track'+pos+'x'], alpha=0.5, \
                 bins=100, range=(-150, 150), histtype='stepfilled', label='ML Reco Track '+positions_labels[j])
             true_countsx, true_binsx, _x = axs[0].hist(df_filtered['true_track'+pos+'x'], alpha=0.5, \
-                bins=100, range=(-150, 150), histtype='stepfilled', label='True Track '+positions_labels[j])
+                bins=100, range=(-150, 150), histtype='stepfilled', label='Matched True Track '+positions_labels[j])
+            #exp_countsx, exp_binsx, _ = axs[0].hist(df_true['true_track'+pos+'x'], alpha=1.0, \
+            #    bins=100, range=(-150, 150), histtype='step', label='Expected True Track '+positions_labels[j],\
+            #    weights=global_scale_factor*np.ones(len(df_true['true_track'+pos+'x'])), \
+            #    linestyle='dashed', color='#774300', linewidth=1.5)
+            #print("Total Expected Tracks (X Position):", np.sum(exp_countsx))
+            print("Total True Tracks (X Position):", np.sum(true_countsx))
+            print("Total Reco Tracks (X Position):", np.sum(reco_countsx))
             axs[0].set_xlabel(positions_labels[j]+' Position [cm]', fontsize=12)
             axs[0].set_ylabel('Count [Tracks / 3 cm]', fontsize=12)
             axs[0].set_xlim(-75, 70)
@@ -171,14 +230,28 @@ def main(ttree_file, protons_only = False):
             reco_countsy, reco_binsy, _y = axs[1].hist(df_filtered['reco_track'+pos+'y'], alpha=0.5, \
                 bins=100, range=(-150, 150), histtype='stepfilled', label='ML Reco Track '+positions_labels[j])
             true_countsy, true_binsy, _y = axs[1].hist(df_filtered['true_track'+pos+'y'], alpha=0.5, \
-                bins=100, range=(-150, 150), histtype='stepfilled', label='True Track '+positions_labels[j])
+                bins=100, range=(-150, 150), histtype='stepfilled', label='Matched True Track '+positions_labels[j])
+            #exp_countsy, exp_binsy, _ = axs[1].hist(df_true['true_track'+pos+'y'], alpha=1.0, \
+            #    bins=100, range=(-150, 150), histtype='step', label='Expected True Track '+positions_labels[j],\
+            #    weights=global_scale_factor*np.ones(len(df_true['true_track'+pos+'y'])), \
+            #    linestyle='dashed', color='#774300', linewidth=1.5)
+            #print("Total Expected Tracks (Y Position):", np.sum(exp_countsy))
+            print("Total True Tracks (Y Position):", np.sum(true_countsy))
+            print("Total Reco Tracks (Y Position):", np.sum(reco_countsy))
             axs[1].set_xlabel(positions_labels[j]+' Position [cm]', fontsize=12)
             axs[1].set_xlim(-65, 65)
 
             reco_countsz, reco_binsz, _z = axs[2].hist(df_filtered['reco_track'+pos+'z'], alpha=0.5, \
                 bins=100, range=(-150, 150), histtype='stepfilled', label='ML Reco Track '+positions_labels[j])
             true_countsz, true_binsz, _z = axs[2].hist(df_filtered['true_track'+pos+'z'], alpha=0.5, \
-                bins=100, range=(-150, 150), histtype='stepfilled', label='True Track '+positions_labels[j])
+                bins=100, range=(-150, 150), histtype='stepfilled', label='Matched True Track '+positions_labels[j])
+            #exp_countsz, exp_binsz, _ = axs[2].hist(df_true['true_track'+pos+'z'], alpha=1.0, \
+            #    bins=100, range=(-150, 150), histtype='step', label='Expected True Track '+positions_labels[j],\
+            #    weights=global_scale_factor*np.ones(len(df_true['true_track'+pos+'z'])), \
+            #    linestyle='dashed', color='#774300', linewidth=1.5)
+            #print("Total Expected Tracks (Z Position):", np.sum(exp_countsz))
+            print("Total True Tracks (Z Position):", np.sum(true_countsz))
+            print("Total Reco Tracks (Z Position):", np.sum(reco_countsz))
             axs[2].set_xlabel(positions_labels[j]+' Position [cm]', fontsize=12)
             axs[2].set_xlim(-75, 70)
 
@@ -186,7 +259,7 @@ def main(ttree_file, protons_only = False):
             axs[0].set_title('       '+r'$\bf{X\ Coordinate}$', y=1.0, loc='left', pad=-14, fontsize=14)
             axs[1].set_title('       '+r'$\bf{Y\ Coordinate}$', y=1.0, loc='left', pad=-14, fontsize=14)
             axs[2].set_title('       '+r'$\bf{Z\ Coordinate}$', y=1.0, loc='left', pad=-14, fontsize=14)
-            fig.suptitle('True vs. ML Reco Track '+positions_labels[j]+' Position for Reconstructed '+sample_label+' Sample', fontsize=16)
+            fig.suptitle('ML Reco vs. Matched True Track '+positions_labels[j]+' Position for Reconstructed '+sample_label+' Sample', fontsize=16)
 
             plt.tight_layout()
             output.savefig()
@@ -198,22 +271,32 @@ def main(ttree_file, protons_only = False):
         reco_counts, reco_bins, _ = axs.hist(df_filtered['reco_ixn_charged_track_mult'], \
             alpha=0.5, bins=50, range=(0, 50), histtype='stepfilled', label='ML Reco Charged Track Multiplicity')
         true_counts, true_bins, _ = axs.hist(df_filtered['true_ixn_charged_track_mult'], \
-            alpha=0.5, bins=50, range=(0, 50),histtype='stepfilled', label='True Charged Track Multiplicity')
+            alpha=0.5, bins=50, range=(0, 50),histtype='stepfilled', label='Matched True Charged Track Multiplicity')
+        #exp_counts, exp_bins, _ = axs.hist(df_true['true_ixn_charged_track_mult'], \
+        #    alpha=1.0, bins=50, range=(0, 50),histtype='step', label='Expected True Charged Track Multiplicity',\
+        #    weights=global_scale_factor*np.ones(len(df_true['true_ixn_charged_track_mult'])), \
+        #    linestyle='dashed', color='#774300', linewidth=1.5)
         axs.set_xlabel('Charged Track Multiplicity at Vertex', fontsize=12)
         axs.set_ylabel('Count [Tracks / Track]', fontsize=12)
         axs.set_xlim(0, 20)
         axs.legend(loc='upper right', fontsize=12)
-        axs.set_title('True vs. ML Reco Charged Track Multiplicity at Vertex for\n Reconstructed'+sample_label+'Sample', fontsize=15)
+        axs.set_title('ML Reco vs. Matched True Charged Track Multiplicity at Vertex for\n Reconstructed'+sample_label+'Sample', fontsize=15)
         plt.tight_layout()
         output.savefig()
         plt.close()
+
+    #Print out output file name and event number for strange events: 
+    print("File and Event Number for events with True vs. ML Reco track length greater than or equalt to 10:")
+    df_wacky = df_filtered[(abs(df_filtered['true_length']-df_filtered['reco_length']))>=10]
+    for i in range(len(df_wacky)):
+        print("File:", df_wacky['caf_file_name'].values[i]," ||  Event:", df_wacky['event'].values[i])
 
 
 
 
 
 # Specific plots: plotting angles by length
-def plot_angle_by_length(sample_name,angle_field,angle_label,df_length_grouped,\
+def plot_angle_by_length(sample_name,angle_field,angle_label,df_length_grouped,df_true_length_grouped, \
                          bins_shown,max_bins,max_track_length):
 
     height = (bins_shown/max_bins)*45
@@ -223,12 +306,19 @@ def plot_angle_by_length(sample_name,angle_field,angle_label,df_length_grouped,\
     for i, (name, group) in enumerate(df_length_grouped):
         if i>=bins_shown:
             break
+        #true_group = df_true_length_grouped.get_group(name)
+        #scale_factor = len(group)/len(true_group)
         reco_counts, reco_bins, _ = axs[i].hist(abs(np.cos(group['reco_'+angle_field])), alpha=0.5, \
                                                 bins=50, range=(0, 1), histtype='stepfilled',\
                                                 label='ML Reco '+angle_label)
         true_counts, true_bins, _ = axs[i].hist(abs(np.cos(group['true_'+angle_field])), alpha=0.5, \
                                                 bins=50, range=(0, 1), histtype='stepfilled',\
-                                                label='True '+angle_label)
+                                                label='Matched True '+angle_label)
+        #exp_counts, exp_bins, _ = axs[i].hist(abs(np.cos(true_group['true_'+angle_field])), alpha=1, \
+        #                                      bins=50, range=(0, 1), histtype='step', \
+        #                                      label='Expected True '+angle_label, \
+        #                                      weights=scale_factor*np.ones(len(true_group['true_'+angle_field])),\
+        #                                      linestyle='dashed', color='#774300', linewidth=1.5)
         if i==0:
             max_count = np.max(np.array([np.max(reco_counts), np.max(true_counts)]))
             print(max_count)
@@ -242,7 +332,7 @@ def plot_angle_by_length(sample_name,angle_field,angle_label,df_length_grouped,\
         length_min = max_track_length/max_bins*(name-1)
         length_max = max_track_length/max_bins*name
         axs[i].set_title('  '+rf'$\bf{{Reco\ Track\ Lengths:\ {length_min:.0f} - {length_max:.0f}\ cm}}$', y=1.0, loc='left', pad=-14, fontsize=14)
-    fig.suptitle('True vs. ML Reco Absolute Value of Cosine of\n'+angle_label+' for Reconstructed '+sample_name+' Sample', fontsize=16)
+    fig.suptitle('ML Reco vs. Matched True Absolute Value of Cosine of\n'+angle_label+' for Reconstructed '+sample_name+' Sample', fontsize=16)
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.95, hspace=0.0)
@@ -250,9 +340,14 @@ def plot_angle_by_length(sample_name,angle_field,angle_label,df_length_grouped,\
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--ttree_file', default=None, type=str,\
+    parser.add_argument('-r', '--reco_sample_file', default=None, type=str,\
                         help='''string corresponding to the path of the file containing a \
                                 TTree with a sample of reconstructed track characteristics''')
+    parser.add_argument('-t', '--true_sample_file', default=None, type=str,\
+                        help='''string corresponding to the path of the file containing a \
+                                TTree with a sample of true track characteristics''')    
+    parser.add_argument('-c', '--overlap_cut', default=0.5, type=float,\
+                        help='''float corresponding with truth/reco overlap cut value''')
     parser.add_argument('-p', '--protons_only', default=False, type=bool,\
                         help='''bool corresponding to whether or not plots will be for all charged \
                                 tracks or just those associated with protons''')

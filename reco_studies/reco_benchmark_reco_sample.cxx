@@ -185,7 +185,8 @@ int reco_benchmark_reco_sample(const std::string& file_list, bool is_flat = fals
     auto file_num = 0;
     for(const auto& f : root_list)
     {
-    std::cout << "Processing " << f << std::endl;
+    std::string current_file = f;
+    std::cout << "Processing " << current_file << std::endl;
     file_num++;
 
     //Open file and attach SRProxy object
@@ -415,7 +416,7 @@ int reco_benchmark_reco_sample(const std::string& file_list, bool is_flat = fals
                 event.push_back(sr->meta.nd_lar.event);
                 run.push_back(sr->meta.nd_lar.run);
                 subrun.push_back(sr->meta.nd_lar.subrun);
-                caf_file_name.push_back(f.c_str());
+                caf_file_name.push_back(current_file.erase(0, current_file.find_last_of("/")+1).c_str());
 
 
             }
