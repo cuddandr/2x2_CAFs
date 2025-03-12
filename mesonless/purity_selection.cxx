@@ -56,7 +56,7 @@ int purity_selection(const std::string& file_list, bool verbose = false)
 
     const auto beam_dir    = TVector3(0.0, -0.05836, 1.0);
     const float tpc_border = 65;
-    const float wall_cut   = 8.0;
+    const float wall_cut   = 5.0;
 
     unsigned int total_signal_ixn = 0;
     unsigned int total_selected = 0;
@@ -65,13 +65,13 @@ int purity_selection(const std::string& file_list, bool verbose = false)
     TH1I* h_num_true    = new TH1I("h_num_true", "h_num_true", 7, 0, 7);
     TH1I* h_tru_reac    = new TH1I("h_tru_reac", "h_tru_reac", 11, 0, 11);
     TH2F* h_true_muon   = new TH2F("h_true_muon", "h_true_muon", 80, 0, 8, 60, 0, 180);
-    TH2F* h_true_proton = new TH2F("h_true_proton", "h_true_proton", 80, 0, 4, 60, 0, 180);
+    TH2F* h_true_proton = new TH2F("h_true_proton", "h_true_proton", 80, 0, 4, 45, 0, 180);
 
     TH1I* h_num_reco    = new TH1I("h_num_reco", "h_num_reco", 5, 0, 5);
     TH1I* h_sel_reac    = new TH1I("h_sel_reac", "h_sel_reac", 11, 0, 11);
     TH2F* h_reco_vtx    = new TH2F("h_reco_vtx", "h_reco_vtx", 60, -60, 60, 60, -60, 60);
     TH2F* h_reco_muon   = new TH2F("h_reco_muon", "h_reco_muon", 40, 0, 2, 60, 0, 180);
-    TH2F* h_reco_proton = new TH2F("h_reco_proton", "h_reco_proton", 40, 0, 2, 60, 0, 180);
+    TH2F* h_reco_proton = new TH2F("h_reco_proton", "h_reco_proton", 40, 0, 2, 45, 0, 180);
 
     TH2F* h_mnv_trk_z = new TH2F("h_mnv_trk_z", "h_mnv_trk_z", 180, -330, 330, 180, -330, 330);
 
@@ -383,8 +383,8 @@ int purity_selection(const std::string& file_list, bool verbose = false)
     caf_output->Close();
     float efficiency = (float)signal_selected / (float)total_signal_ixn;
     float purity = (float)signal_selected / (float)total_selected;
-    std::cout << "Purity   : " << signal_selected << " / " << total_selected << " ~ " << purity << std::endl;
-    std::cout << "Efficency: " << signal_selected << " / " << total_signal_ixn << " ~ " << efficiency << std::endl;
+    std::cout << "Purity    : " << signal_selected << " / " << total_selected << " ~ " << purity << std::endl;
+    std::cout << "Efficiency: " << signal_selected << " / " << total_signal_ixn << " ~ " << efficiency << std::endl;
     std::cout << "Time elapsed: " << t_elapsed.count() << std::endl;
     std::cout << "Finished." << std::endl;
     return 0;
